@@ -74,7 +74,7 @@ export function RegisterForm() {
 
     // Smooth transition routing into user panel
     setTimeout(() => {
-      router.push("/dashboard");
+      router.push("/");
     }, 1500);
   };
 
@@ -82,7 +82,7 @@ export function RegisterForm() {
     setServerError(null);
     await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/dashboard",
+      callbackURL: "/",
     });
   };
 

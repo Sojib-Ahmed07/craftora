@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (!session || session.user?.role !== "admin") {
       return NextResponse.json(
         { error: "Forbidden. Admin authorization required." },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
       categoryId,
       images,
     });
+
     // Strict validation: check for missing values using explicit null/undefined checks
     if (
       !name ||
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
           error:
             "Missing required fields: name, description, price, and categoryId are required.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -56,14 +58,26 @@ export async function POST(request: NextRequest) {
     if (isNaN(parsedPrice)) {
       return NextResponse.json(
         { error: "The provided price field must be a valid number format." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const slug = name
+    // Generate baseline URL slug
+    let baseSlug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
+
+    // FIX: Collision resolution logic
+    // Checks if the slug already exists; if yes, appends a short hex token to maintain database uniqueness
+    const existingProduct = await prisma.product.findUnique({
+      where: { slug: baseSlug },
+    });
+
+    if (existingProduct) {
+      const uniqueSuffix = crypto.randomBytes(3).toString("hex"); // generates e.g. "a2b4e1"
+      baseSlug = `${baseSlug}-${uniqueSuffix}`;
+    }
 
     // Clean out empty string array items created by your frontend form's imagery fallback logic
     const cleanImages = Array.isArray(images)
@@ -73,7 +87,7 @@ export async function POST(request: NextRequest) {
     const newProduct = await prisma.product.create({
       data: {
         name,
-        slug,
+        slug: baseSlug, // Save the safely evaluated unique slug
         description,
         price: parsedPrice,
         stock: isNaN(parsedStock) ? 0 : parsedStock,
@@ -84,21 +98,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { message: "Product created successfully!", product: newProduct },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: any) {
     console.error("ADMIN_PRODUCT_POST_ERROR:", error);
 
     if (error.code === "P2002") {
       return NextResponse.json(
-        { error: "A product with this name already exists." },
-        { status: 400 },
+        { error: "A product with this generated slug index already exists." },
+        { status: 400 }
       );
     }
 
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

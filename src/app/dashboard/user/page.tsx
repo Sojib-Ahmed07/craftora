@@ -1,122 +1,96 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { LogOutButton } from "./logout-button"; // We will build this client button next
-import { LayoutDashboard, User, Shield, Clock, Database } from "lucide-react";
+import { Mail, ShoppingBag, ArrowRight, ShieldCheck } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LogOutButton } from "./logout-button";
 
-export default async function DashboardPage() {
-  // 1. Fetch the server-side verified session
+export default async function UserDashboardPage() {
+  // 1. Fetch server-side verified session context
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
-  // 2. Server-side redirect if unauthorized
+  // 2. Server-side redirect if unauthorized or unauthenticated
   if (!session) {
     redirect("/login");
   }
 
-  // 3. Optional: You can run database queries directly via Prisma right here!
-  // For example, finding items assigned exclusively to this logged-in individual:
-  // const userItems = await prisma.item.findMany({ where: { userId: session.user.id } });
+  // Calculate uppercase name initials for avatar fallback
+  const userInitials = session.user.name
+    ? session.user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "US";
 
   return (
-    <div className="min-h-screen bg-neutral-50 p-6 md:p-10">
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Top Header Navigation Strip */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-neutral-200 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-              <LayoutDashboard className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-                Dashboard
-              </h1>
-              <p className="text-sm text-neutral-500">
-                Welcome back, {session.user.name}
-              </p>
+    <div className="min-h-[80vh] flex items-center justify-center bg-neutral-50/40 px-4 py-12">
+      {/* Consolidated Master Dashboard Frame */}
+      <div className="w-full max-w-2xl bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-neutral-100">
+        {/* Left Aspect: Verified Identity Info (3 Columns wide) */}
+        <div className="p-6 md:col-span-3 flex flex-col justify-between space-y-6">
+          <div className="flex items-start gap-4">
+            <Avatar className="h-12 w-12 border border-neutral-200 shadow-sm shrink-0">
+              <AvatarImage
+                src={session.user.image || undefined}
+                alt={session.user.name || "Client User"}
+              />
+              <AvatarFallback className="bg-neutral-950 text-white font-bold text-sm">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="space-y-1 min-w-0">
+              <h2 className="text-base font-bold tracking-tight text-neutral-900 truncate">
+                {session.user.name}
+              </h2>
+              <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                <Mail className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
+                <span className="truncate font-mono">{session.user.email}</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Injecting the client components for interactable buttons */}
+
+          {/* Security & Role Identity Attributions */}
+          <div className="flex items-center justify-between pt-4 border-t border-neutral-50">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+              <ShieldCheck className="h-4 w-4" /> Account Verified
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-lg border border-neutral-200/60">
+              {session.user.role || "Standard Client"}
+            </span>
+          </div>
+        </div>
+
+        {/* Right Aspect: Interactive Logistics Actions (2 Columns wide) */}
+        <div className="p-6 md:col-span-2 bg-neutral-50/40 flex flex-col justify-between gap-6">
+          <div className="space-y-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+              Logistics Workspace
+            </h3>
+            <p className="text-xs text-neutral-500 leading-relaxed">
+              Track active fulfillment states, shipments, and previous purchase
+              receipts.
+            </p>
+          </div>
+
+          {/* Action Trigger Elements */}
+          <div className="space-y-2">
+            <Link
+              href="/orders"
+              className="w-full h-10 rounded-xl bg-neutral-950 hover:bg-neutral-900 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-[0.99]"
+            >
+              <ShoppingBag className="h-3.5 w-3.5" />
+              My Orders
+              <ArrowRight className="h-3.5 w-3.5 ml-0.5 opacity-80" />
+            </Link>
+
             <LogOutButton />
           </div>
-        </div>
-
-        {/* Info Cards Grid */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Card 1: User Profile Context */}
-          <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                  Logged In As
-                </p>
-                <h3 className="text-lg font-semibold text-neutral-800 truncate max-w-[200px]">
-                  {session.user.name}
-                </h3>
-                <p className="text-xs text-neutral-500 truncate max-w-[220px]">
-                  {session.user.email}
-                </p>
-              </div>
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <User className="h-5 w-5" />
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Database Account ID Mapping */}
-          <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                  Internal Reference
-                </p>
-                <h3 className="text-sm font-mono text-neutral-700 bg-neutral-50 p-1 rounded break-all select-all">
-                  {session.user.id}
-                </h3>
-              </div>
-              <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                <Database className="h-5 w-5" />
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Security Clearances */}
-          <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                  Assigned Clearance
-                </p>
-                <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize mt-1 ${
-                    session.user.role === "admin"
-                      ? "bg-amber-50 text-amber-700 border border-amber-200"
-                      : "bg-green-50 text-green-700 border border-green-200"
-                  }`}
-                >
-                  <Shield className="h-3 w-3" />
-                  {session.user.role || "user"}
-                </span>
-              </div>
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                <Shield className="h-5 w-5" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Pane */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4 text-neutral-800 font-semibold">
-            <Clock className="h-4 w-4 text-neutral-400" />
-            <h2>Active Token Payload Session State</h2>
-          </div>
-          <pre className="text-xs font-mono bg-neutral-900 text-neutral-200 p-4 rounded-lg overflow-x-auto selection:bg-neutral-700">
-            {JSON.stringify(session, null, 2)}
-          </pre>
         </div>
       </div>
     </div>

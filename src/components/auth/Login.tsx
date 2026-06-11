@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react"; // Added Loader2 for visual loading state
+import { Eye, EyeOff, Loader2, User, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { authClient } from "@/lib/auth-client"; // Import Better Auth Client Hook utils
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,7 +24,6 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters."),
 });
 
-// Infer form values directly from schema definitions
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
@@ -36,12 +35,23 @@ export function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
-  // 1. Email and Password Credentials Submission Flow
+  // Helper method to dynamically inject mock authorization credentials
+  const handleFillDemoCredentials = (role: "user" | "admin") => {
+    const email = role === "user" ? "test11@mail.com" : "test1@mail.com";
+    const password = "11111111";
+
+    setValue("email", email, { shouldValidate: true });
+    setValue("password", password, { shouldValidate: true });
+    clearErrors(["email", "password"]);
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setGlobalError(null);
@@ -50,7 +60,7 @@ export function LoginForm() {
       {
         email: data.email,
         password: data.password,
-        callbackURL: "/dashboard", // Optional custom redirection endpoint
+        callbackURL: "/", // 1. Changed from "/dashboard" to "/"
       },
       {
         onRequest: () => {
@@ -58,12 +68,11 @@ export function LoginForm() {
         },
         onSuccess: () => {
           setIsLoading(false);
-          router.push("/dashboard"); // Route user forward once server cookies generate
+          router.push("/"); // 2. Changed from "/dashboard" to "/"
           router.refresh();
         },
         onError: (ctx) => {
           setIsLoading(false);
-          // Catch invalid passwords or non-existent records straight from Better Auth context
           setGlobalError(
             ctx.error.message || "Invalid credentials. Please try again.",
           );
@@ -72,12 +81,11 @@ export function LoginForm() {
     );
   };
 
-  // 2. Google OAuth Social Single Sign-On Provider Call
   const handleGoogleLogin = async () => {
     setGlobalError(null);
     await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/dashboard",
+      callbackURL: "/", // Changed from "/dashboard" to "/"
     });
   };
 
@@ -93,7 +101,6 @@ export function LoginForm() {
       </CardHeader>
 
       <CardContent className="grid gap-6">
-        {/* Render a callout notification if Better Auth reports bad credentials */}
         {globalError && (
           <div className="p-3 text-sm font-medium rounded-md bg-destructive/10 text-destructive border border-destructive/20">
             {globalError}
@@ -159,6 +166,32 @@ export function LoginForm() {
               "Sign in"
             )}
           </Button>
+
+          {/* TWO NEW BUTTONS: DEMO ACCESS TRIGGER PLATFORM */}
+          <div className="grid grid-cols-2 gap-3 mt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+              onClick={() => handleFillDemoCredentials("user")}
+              className="text-xs gap-1.5 rounded-xl h-9 border-neutral-200 bg-neutral-50/50 hover:bg-neutral-100/80 cursor-pointer text-neutral-700"
+            >
+              <User size={14} className="text-neutral-400" />
+              Demo User
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+              onClick={() => handleFillDemoCredentials("admin")}
+              className="text-xs gap-1.5 rounded-xl h-9 border-neutral-200 bg-neutral-50/50 hover:bg-neutral-100/80 cursor-pointer text-neutral-700"
+            >
+              <ShieldAlert size={14} className="text-neutral-400" />
+              Demo Admin
+            </Button>
+          </div>
         </form>
 
         <div className="relative">

@@ -2,8 +2,18 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, User, LogOut, LayoutDashboard, Settings } from "lucide-react";
+import {
+  Menu,
+  X,
+  User,
+  LogOut,
+  LayoutDashboard,
+  ShoppingBag,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 // Import useSession and signOut from your auth client setup
 import { useSession, signOut } from "@/lib/auth-client";
@@ -21,10 +31,15 @@ import {
 export function Navbar() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   // Destructure session details from Better Auth
   const { data: session, isPending } = useSession();
   const isLoggedIn = !!session;
+
+  // Dynamic selection based on the user record metadata flag
+  const dashboardHref =
+    session?.user?.role === "admin" ? "/dashboard/admin" : "/dashboard/user";
 
   const handleLogout = async () => {
     await signOut({
@@ -34,6 +49,20 @@ export function Navbar() {
         },
       },
     });
+  };
+
+  // Direct DOM implementation that acts as a failsafe for Tailwind v4 + next-themes
+  const toggleTheme = () => {
+    if (typeof window !== "undefined") {
+      const isDark = document.documentElement.classList.contains("dark");
+      if (isDark) {
+        setTheme("light");
+        document.documentElement.classList.remove("dark");
+      } else {
+        setTheme("dark");
+        document.documentElement.classList.add("dark");
+      }
+    }
   };
 
   return (
@@ -56,29 +85,17 @@ export function Navbar() {
             Home
           </Link>
           <Link
-            href="/explore"
+            href="/products"
             className="text-sm font-medium transition-colors hover:text-primary"
           >
             Explore
-          </Link>
-          <Link
-            href="/blog"
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Blog
-          </Link>
-          <Link
-            href="/about"
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            About
           </Link>
 
           {/* Render extra links conditionally matching the document guidelines */}
           {isLoggedIn && (
             <>
               <Link
-                href="/dashboard"
+                href={dashboardHref}
                 className="text-sm font-medium transition-colors hover:text-primary"
               >
                 Dashboard
@@ -95,6 +112,27 @@ export function Navbar() {
 
         {/* Action Controls Side Element */}
         <div className="hidden md:flex items-center gap-4">
+          {/* Theme Toggle Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            onClick={toggleTheme}
+          >
+            {/* Standard side-by-side transition hidden layout style */}
+            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
+          {/* Persistent Cart Icon Button Link */}
+          <Link
+            href="/cart"
+            className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ShoppingBag size={20} />
+          </Link>
+
           {isPending ? (
             // Shimmer/Empty placeholder gap during active authentication pass checks
             <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
@@ -141,7 +179,16 @@ export function Navbar() {
                   asChild
                   className="cursor-pointer gap-2 rounded-lg"
                 >
-                  <Link href="/dashboard">
+                  <Link href="/orders">
+                    <ShoppingBag size={16} />
+                    My Orders
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="cursor-pointer gap-2 rounded-lg"
+                >
+                  <Link href={dashboardHref}>
                     <LayoutDashboard size={16} />
                     Dashboard
                   </Link>
@@ -171,14 +218,33 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Hamburger Toggle */}
-        <button
-          className="md:hidden p-1 text-muted-foreground hover:text-foreground focus:outline-none"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle Menu"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Mobile Hamburger Layout Elements Toggles */}
+        <div className="flex md:hidden items-center gap-2">
+          {/* Mobile Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            onClick={toggleTheme}
+          >
+            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
+
+          <Link
+            href="/cart"
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ShoppingBag size={21} />
+          </Link>
+          <button
+            className="p-1 text-muted-foreground hover:text-foreground focus:outline-none"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle Menu"
+          >
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Accordion Navigation Panel */}
@@ -192,25 +258,11 @@ export function Navbar() {
             Home
           </Link>
           <Link
-            href="/explore"
+            href="/products"
             className="text-sm font-medium py-1"
             onClick={() => setIsOpen(false)}
           >
             Explore
-          </Link>
-          <Link
-            href="/blog"
-            className="text-sm font-medium py-1"
-            onClick={() => setIsOpen(false)}
-          >
-            Blog
-          </Link>
-          <Link
-            href="/about"
-            className="text-sm font-medium py-1"
-            onClick={() => setIsOpen(false)}
-          >
-            About
           </Link>
 
           {isLoggedIn ? (
@@ -232,7 +284,14 @@ export function Navbar() {
                 Profile Info
               </Link>
               <Link
-                href="/dashboard"
+                href="/orders"
+                className="text-sm font-medium py-1 text-muted-foreground"
+                onClick={() => setIsOpen(false)}
+              >
+                My Orders
+              </Link>
+              <Link
+                href={dashboardHref}
                 className="text-sm font-medium py-1 text-muted-foreground"
                 onClick={() => setIsOpen(false)}
               >
