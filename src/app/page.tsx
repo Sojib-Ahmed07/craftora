@@ -1,6 +1,8 @@
 import Hero from "@/components/home/Hero";
 import CategoryTabsFilter from "@/components/home/CategoryTabsFilter";
 import RecentArrivals from "@/components/home/RecentArrivals";
+import AboutPage from "@/components/home/About";
+import TermsPage from "@/components/home/Term";
 
 export default function HomePage() {
   return (
@@ -13,6 +15,10 @@ export default function HomePage() {
 
       {/* 3. Isolated Recent Global Catalog Additions Feed */}
       <RecentArrivals />
+
+      <AboutPage/>
+
+      <TermsPage/>
     </div>
   );
 }
