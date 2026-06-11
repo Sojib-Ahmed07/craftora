@@ -60,7 +60,10 @@ export default function AddProductPage() {
     setLoading(true);
     setStatus(null);
 
-    const formData = new FormData(e.currentTarget);
+    // CRITICAL FIX: Capture form element reference instantly before async execution pools wipe 'e.currentTarget'
+    const formElement = e.currentTarget;
+
+    const formData = new FormData(formElement);
 
     // FIX 2: Swap out the old single 'imageUrl' string property extraction.
     // We now feed our state payload array directly into the database API.
@@ -89,7 +92,8 @@ export default function AddProductPage() {
         message: "Product listed securely in repository catalog!",
       });
 
-      e.currentTarget.reset();
+      // CRITICAL FIX: Safe execution using the explicitly captured element reference variable
+      formElement.reset();
       setImages([]); // Clear the uploaded image previews grid on success
       router.refresh();
     } catch (err: any) {
