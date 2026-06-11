@@ -6,13 +6,14 @@ import {
   Loader2,
   Plus,
   ArrowLeft,
-  ImageIcon,
   Package,
   Layers,
   DollarSign,
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
+// 1. Import your new Cloudinary image uploader component
+import { ImageUploader } from "@/components/admin/image-uploader";
 
 interface Category {
   id: string;
@@ -23,7 +24,9 @@ export default function AddProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Added quick default backups in case the DB table is empty
+  // FIX 1: Add a managed React state array tracking variable for uploaded Cloudinary asset URLs
+  const [images, setImages] = useState<string[]>([]);
+
   const [categories, setCategories] = useState<Category[]>([
     { id: "fallback-electronics", name: "Electronics (Local Backup)" },
     { id: "fallback-clothing", name: "Clothing & Apparel (Local Backup)" },
@@ -41,7 +44,6 @@ export default function AddProductPage() {
         const res = await fetch("/api/categories");
         if (res.ok) {
           const data = await res.json();
-          // Only overwrite if the database actually returned rows
           if (Array.isArray(data) && data.length > 0) {
             setCategories(data);
           }
@@ -59,13 +61,16 @@ export default function AddProductPage() {
     setStatus(null);
 
     const formData = new FormData(e.currentTarget);
+
+    // FIX 2: Swap out the old single 'imageUrl' string property extraction.
+    // We now feed our state payload array directly into the database API.
     const payload = {
       name: formData.get("name"),
       description: formData.get("description"),
       price: formData.get("price"),
       stock: formData.get("stock"),
       categoryId: formData.get("categoryId"),
-      images: formData.get("imageUrl") ? [formData.get("imageUrl")] : [],
+      images: images,
     };
 
     try {
@@ -83,7 +88,9 @@ export default function AddProductPage() {
         type: "success",
         message: "Product listed securely in repository catalog!",
       });
+
       e.currentTarget.reset();
+      setImages([]); // Clear the uploaded image previews grid on success
       router.refresh();
     } catch (err: any) {
       setStatus({ type: "error", message: err.message });
@@ -139,7 +146,7 @@ export default function AddProductPage() {
                 required
                 name="name"
                 type="text"
-                placeholder="e.g., Ultra-Wide Curved Monitor"
+                placeholder="e.g., Hand-Woven Wool Rug"
                 className="w-full border border-neutral-200 rounded-lg p-3 text-sm outline-none focus:border-neutral-900 transition-colors bg-neutral-50/30"
               />
             </div>
@@ -204,7 +211,6 @@ export default function AddProductPage() {
                     {categories.map((cat) => (
                       <option
                         key={cat.id || (cat as any)._id}
-                        /* FIX: Safeguard in case DB keys are uppercase, prefixed, or underscored */
                         value={cat.id || (cat as any)._id || (cat as any).id}
                         className="text-neutral-900"
                       >
@@ -218,16 +224,11 @@ export default function AddProductPage() {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <label className="text-sm font-semibold text-neutral-800 flex items-center gap-1.5">
-                  <ImageIcon className="h-4 w-4 text-neutral-400" /> Display
-                  Asset Image Link
-                </label>
-                <input
-                  name="imageUrl"
-                  type="url"
-                  placeholder="https://images.unsplash.com/example"
-                  className="w-full border border-neutral-200 rounded-lg p-3 text-sm outline-none focus:border-neutral-900 transition-colors bg-neutral-50/30"
+              {/* FIX 3: Completely replaced the old textual display input slot with our custom Cloudinary Dropzone area */}
+              <div className="md:col-span-2 pt-2">
+                <ImageUploader
+                  value={images}
+                  onChange={(urls) => setImages(urls)}
                 />
               </div>
             </div>
