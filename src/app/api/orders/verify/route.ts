@@ -26,9 +26,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Check if this exact order has already been provisioned to prevent duplicates
-    const existingOrder = await prisma.order.findUnique({
-      where: { stripeSessionId: sessionId },
+    // FIX 1: Use 'paymentId' instead of 'stripeSessionId' to look up duplicates
+    const existingOrder = await prisma.order.findFirst({
+      where: { paymentId: sessionId },
     });
 
     if (existingOrder) {
@@ -66,13 +66,14 @@ export async function POST(req: Request) {
         data: {
           userId: userId,
           totalAmount: (stripeSession.amount_total || 0) / 100,
-          status: "PENDING",
-          paymentStatus: "PAID",
-          stripeSessionId: sessionId,
+          status: "processing", // Matches your default schema string rule style
+          isPaid: true, // FIX 2: Uses your schema's 'isPaid' boolean property
+          paymentId: sessionId, // FIX 3: Saves the Stripe session ID into your 'paymentId' slot
           items: {
             create: parsedItems.map((item: any) => ({
               productId: item.id,
               quantity: item.quantity,
+              // Make sure your OrderItem model properties match your schema fields as well!
             })),
           },
         },
