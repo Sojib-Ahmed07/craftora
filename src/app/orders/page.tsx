@@ -49,14 +49,20 @@ export default async function UserOrdersPage() {
                 </p>
               </div>
               <div className="flex gap-2 shrink-0">
+                {/* FIX 1: Evaluates the 'isPaid' schema flag to determine the badge color & string values */}
                 <Badge
                   variant="outline"
-                  className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold rounded-md"
+                  className={`${
+                    order.isPaid
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  } font-bold rounded-md`}
                 >
-                  {order.paymentStatus}
+                  {order.isPaid ? "PAID" : "UNPAID"}
                 </Badge>
+
                 <Badge
-                  className={`font-bold rounded-md text-white ${
+                  className={`font-bold rounded-md text-white border-0 capitalize ${
                     order.status === "DELIVERED"
                       ? "bg-emerald-600"
                       : order.status === "SHIPPED"
@@ -83,7 +89,8 @@ export default async function UserOrdersPage() {
                     </p>
                   </div>
                   <span className="font-bold text-neutral-900">
-                    ${Number(item.product.price * item.quantity).toFixed(2)}
+                    {/* FIX 2: Added safe type casting wrapper around Prisma decimal properties calculation */}
+                    ${(Number(item.product.price) * item.quantity).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -93,7 +100,8 @@ export default async function UserOrdersPage() {
                   Total Paid Amount:
                 </span>
                 <span className="text-base font-black text-neutral-900">
-                  ${order.totalAmount.toFixed(2)}
+                  {/* FIX 3: Safe type casting for the top level order amount field */}
+                  ${Number(order.totalAmount).toFixed(2)}
                 </span>
               </div>
             </CardContent>
