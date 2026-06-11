@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CustomLink as Link } from "@/components/ui/custom-link";
 import { useState } from "react";
 import {
   Menu,

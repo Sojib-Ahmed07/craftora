@@ -4,7 +4,7 @@ import RecentArrivals from "@/components/home/RecentArrivals";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full">
       {/* 1. Viewport-Bound Interactive Hero Component Section */}
       <Hero />
 
